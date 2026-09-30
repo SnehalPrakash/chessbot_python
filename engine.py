@@ -141,19 +141,68 @@ OPENING_BOOK: dict[str, list[str]] = {
     "c2c4": ["e7e5", "g8f6", "c7c5", "e7e6"],
     # Responses to 1.Nf3
     "g1f3": ["d7d5", "g8f6", "c7c5"],
-    # Italian / Ruy Lopez starters
+    # Italian / Ruy Lopez
     "e2e4 e7e5": ["g1f3"],
     "e2e4 e7e5 g1f3": ["b8c6"],
     "e2e4 e7e5 g1f3 b8c6": ["f1b5", "f1c4", "d2d4"],
+    "e2e4 e7e5 g1f3 b8c6 f1b5": ["a7a6", "g8f6", "d7d6"],
+    "e2e4 e7e5 g1f3 b8c6 f1b5 a7a6": ["b5a4"],
+    "e2e4 e7e5 g1f3 b8c6 f1b5 a7a6 b5a4": ["g8f6"],
+    "e2e4 e7e5 g1f3 b8c6 f1c4": ["f8c5", "g8f6"],
+    "e2e4 e7e5 g1f3 b8c6 f1c4 f8c5": ["c2c3", "d2d3", "b2b4"],
+    # Scotch Game
+    "e2e4 e7e5 g1f3 b8c6 d2d4": ["e5d4"],
+    "e2e4 e7e5 g1f3 b8c6 d2d4 e5d4": ["f3d4"],
     # Sicilian
     "e2e4 c7c5": ["g1f3", "b1c3"],
     "e2e4 c7c5 g1f3": ["d7d6", "b8c6", "e7e6"],
+    "e2e4 c7c5 g1f3 d7d6": ["d2d4"],
+    "e2e4 c7c5 g1f3 d7d6 d2d4": ["c5d4"],
+    "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4": ["f3d4"],
+    "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4": ["g8f6"],
+    "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6": ["b1c3"],
+    "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6 b1c3": ["a7a6", "g7g6"],
+    # French Defense
+    "e2e4 e7e6": ["d2d4"],
+    "e2e4 e7e6 d2d4": ["d7d5"],
+    "e2e4 e7e6 d2d4 d7d5": ["b1c3", "b1d2", "e4e5"],
+    "e2e4 e7e6 d2d4 d7d5 b1c3": ["g8f6", "f8b4"],
+    # Caro-Kann
+    "e2e4 c7c6": ["d2d4"],
+    "e2e4 c7c6 d2d4": ["d7d5"],
+    "e2e4 c7c6 d2d4 d7d5": ["b1c3", "e4e5", "b1d2"],
+    "e2e4 c7c6 d2d4 d7d5 b1c3": ["d5e4"],
+    "e2e4 c7c6 d2d4 d7d5 b1c3 d5e4": ["c3e4"],
+    # Scandinavian
+    "e2e4 d7d5": ["e4d5"],
+    "e2e4 d7d5 e4d5": ["d8d5", "g8f6"],
     # Queen's Gambit
     "d2d4 d7d5": ["c2c4"],
     "d2d4 d7d5 c2c4": ["e7e6", "c7c6", "d5c4"],
+    "d2d4 d7d5 c2c4 e7e6": ["b1c3", "g1f3"],
+    "d2d4 d7d5 c2c4 e7e6 b1c3": ["g8f6"],
+    "d2d4 d7d5 c2c4 e7e6 g1f3": ["g8f6"],
+    # Slav Defense
+    "d2d4 d7d5 c2c4 c7c6": ["g1f3", "b1c3"],
+    "d2d4 d7d5 c2c4 c7c6 g1f3": ["g8f6"],
     # Indian systems
     "d2d4 g8f6": ["c2c4"],
     "d2d4 g8f6 c2c4": ["e7e6", "g7g6"],
+    # King's Indian Defense
+    "d2d4 g8f6 c2c4 g7g6": ["b1c3"],
+    "d2d4 g8f6 c2c4 g7g6 b1c3": ["f8g7"],
+    "d2d4 g8f6 c2c4 g7g6 b1c3 f8g7": ["e2e4"],
+    "d2d4 g8f6 c2c4 g7g6 b1c3 f8g7 e2e4": ["d7d6"],
+    # Nimzo-Indian
+    "d2d4 g8f6 c2c4 e7e6": ["b1c3", "g1f3"],
+    "d2d4 g8f6 c2c4 e7e6 b1c3": ["f8b4"],
+    # London System
+    "d2d4 d7d5 c1f4": ["g8f6", "c7c5", "e7e6"],
+    "d2d4 g8f6 c1f4": ["d7d5", "e7e6", "c7c5"],
+    # English Opening
+    "c2c4 e7e5": ["b1c3", "g2g3"],
+    "c2c4 g8f6": ["b1c3", "g2g3"],
+    "c2c4 c7c5": ["g1f3", "b1c3"],
 }
 
 
@@ -220,7 +269,18 @@ class ChessEngine:
             if self.search_stopped:
                 break
 
-            score, move = self._root_search(board, depth)
+            # Aspiration windows: narrow search around previous score
+            if depth >= 4 and abs(best_score) < MATE_SCORE - 100:
+                asp_window = 50
+                asp_alpha = best_score - asp_window
+                asp_beta = best_score + asp_window
+                score, move = self._root_search(board, depth, asp_alpha, asp_beta)
+                # Re-search with full window if score fell outside
+                if not self.search_stopped and move is not None:
+                    if score <= asp_alpha or score >= asp_beta:
+                        score, move = self._root_search(board, depth)
+            else:
+                score, move = self._root_search(board, depth)
 
             if not self.search_stopped and move is not None:
                 best_move = move
@@ -305,11 +365,10 @@ class ChessEngine:
 
     # ── Root Search ───────────────────────────────────────────────────────
 
-    def _root_search(self, board: chess.Board, depth: int) -> tuple[int, chess.Move | None]:
+    def _root_search(self, board: chess.Board, depth: int,
+                     alpha: int = -MATE_SCORE, beta: int = MATE_SCORE) -> tuple[int, chess.Move | None]:
         best_move: chess.Move | None = None
         best_score = -MATE_SCORE
-        alpha = -MATE_SCORE
-        beta = MATE_SCORE
 
         moves = self._order_moves(board, list(board.legal_moves), ply=0)
 
@@ -376,6 +435,20 @@ class ChessEngine:
             if null_score >= beta:
                 return beta
 
+        # Futility pruning (reverse + forward setup)
+        static_eval = None
+        can_futility = False
+        futility_margin = 0
+        if not in_check and depth <= 3 and abs(alpha) < MATE_SCORE - 100:
+            static_eval = self._evaluate(board)
+            # Reverse futility pruning: position is so good we can prune
+            if static_eval - 120 * depth >= beta:
+                return static_eval
+            # Forward futility pruning setup (depth 1-2 only)
+            if depth <= 2:
+                can_futility = True
+                futility_margin = static_eval + (200 if depth == 1 else 500)
+
         legal_moves = list(board.legal_moves)
 
         # Checkmate / stalemate
@@ -391,6 +464,11 @@ class ChessEngine:
         original_alpha = alpha
 
         for i, move in enumerate(moves):
+            # Forward futility pruning: skip quiet moves that can't raise alpha
+            if can_futility and i > 0 and not board.is_capture(move) and not move.promotion:
+                if futility_margin <= alpha:
+                    continue
+
             board.push(move)
             self.nodes_searched += 1
 
