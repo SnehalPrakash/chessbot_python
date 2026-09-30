@@ -6,6 +6,7 @@ Usage:
     python main.py              Play interactively against the engine
     python main.py --selfplay   Watch the engine play against itself
     python main.py --bench      Run a benchmark / perft test
+    python main.py --uci        Launch in UCI protocol mode (for chess GUIs)
     python main.py --help       Show this help message
 
 Modules:
@@ -159,6 +160,9 @@ def main():
         selfplay(time_per_move=time_per_move)
     elif "--bench" in args:
         benchmark()
+    elif "--uci" in args:
+        from uci import uci_loop
+        uci_loop()
     else:
         # Default: interactive play
         from ui import main as ui_main

@@ -181,11 +181,21 @@ class ChessEngine:
         self.start_time = 0.0
         self.end_time = 0.0
         self.search_stopped = False
+        self.pv: list[chess.Move] = []
+        self.best_score = 0
 
     # ── Public API ────────────────────────────────────────────────────────
 
-    def search(self, board: chess.Board, time_limit: float | None = None) -> chess.Move | None:
-        """Find the best move via iterative deepening."""
+    def search(self, board: chess.Board, time_limit: float | None = None,
+               info_callback=None) -> chess.Move | None:
+        """Find the best move via iterative deepening.
+
+        Args:
+            board: Current board position.
+            time_limit: Override the default time limit (seconds).
+            info_callback: Optional callable invoked after each completed depth
+                           with a dict of search info (depth, score, nodes, nps, pv, time).
+        """
         if time_limit is not None:
             self.time_limit = time_limit
 
@@ -198,6 +208,8 @@ class ChessEngine:
         book_move = self._get_book_move(board)
         if book_move:
             self.end_time = time.time()
+            self.pv = [book_move]
+            self.best_score = 0
             return book_move
 
         best_move: chess.Move | None = None
@@ -214,10 +226,25 @@ class ChessEngine:
                 best_move = move
                 best_score = score
 
+                # Extract PV and report progress
+                self.pv = self._extract_pv(board)
+                if info_callback is not None:
+                    elapsed = time.time() - self.start_time
+                    nps = int(self.nodes_searched / max(elapsed, 0.001))
+                    info_callback({
+                        "depth": depth,
+                        "score": score,
+                        "nodes": self.nodes_searched,
+                        "nps": nps,
+                        "pv": [m.uci() for m in self.pv],
+                        "time": round(elapsed, 2),
+                    })
+
             elapsed = time.time() - self.start_time
             if elapsed >= self.time_limit * 0.75:
                 break
 
+        self.best_score = best_score
         self.end_time = time.time()
         return best_move
 
@@ -230,7 +257,34 @@ class ChessEngine:
             "time": round(elapsed, 2),
             "nps": nps,
             "tt_size": len(self.tt),
+            "score": self.best_score,
+            "pv": [m.uci() for m in self.pv],
         }
+
+    def _extract_pv(self, board: chess.Board, max_length: int = 20) -> list[chess.Move]:
+        """Extract the principal variation from the transposition table."""
+        pv = []
+        seen_keys = set()
+        temp_board = board.copy()
+
+        for _ in range(max_length):
+            tt_key = temp_board._transposition_key()
+            if tt_key in seen_keys:
+                break
+            seen_keys.add(tt_key)
+
+            entry = self.tt.get(tt_key)
+            if entry is None:
+                break
+
+            _, _, _, best_move = entry
+            if best_move is None or best_move not in temp_board.legal_moves:
+                break
+
+            pv.append(best_move)
+            temp_board.push(best_move)
+
+        return pv
 
     # ── Opening Book ──────────────────────────────────────────────────────
 
@@ -652,3 +706,5 @@ class ChessEngine:
         self.tt.clear()
         self.killers.clear()
         self.history.clear()
+        self.pv.clear()
+        self.best_score = 0

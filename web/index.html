@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="ChessBot — A Python chess engine running entirely in your browser via WebAssembly. Play against an ~1800 rated engine with zero server required.">
+    <title>ChessBot — Browser Chess Engine</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♞</text></svg>">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen">
+        <div class="loader-content">
+            <div class="chess-loader">♞</div>
+            <h1>ChessBot</h1>
+            <p>Loading engine via WebAssembly…</p>
+            <div class="progress-bar">
+                <div class="progress-fill" id="load-progress"></div>
+            </div>
+            <p class="load-status" id="load-status">Initializing Pyodide…</p>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="app" class="hidden">
+        <header>
+            <h1>♞ ChessBot</h1>
+            <span class="subtitle">Python Engine · WebAssembly · Zero Server</span>
+        </header>
+
+        <main>
+            <div class="game-area">
+                <div class="eval-bar-container">
+                    <div class="eval-bar">
+                        <div class="eval-fill" id="eval-fill"></div>
+                    </div>
+                    <span class="eval-score" id="eval-score">0.0</span>
+                </div>
+                <div class="board-wrapper">
+                    <div class="board-with-coords">
+                        <div class="coords-left" id="rank-labels"></div>
+                        <div class="board" id="board"></div>
+                    </div>
+                    <div class="coords-bottom" id="file-labels"></div>
+                </div>
+            </div>
+
+            <aside class="sidebar">
+                <div class="panel status-panel" id="status-panel">
+                    <h2>♛ Status</h2>
+                    <p id="status-text">White to move</p>
+                    <div class="engine-stats" id="engine-stats">
+                        <span class="stat">
+                            <span class="stat-label">Depth</span>
+                            <span class="stat-value" id="stat-depth">–</span>
+                        </span>
+                        <span class="stat">
+                            <span class="stat-label">Nodes</span>
+                            <span class="stat-value" id="stat-nodes">–</span>
+                        </span>
+                        <span class="stat">
+                            <span class="stat-label">NPS</span>
+                            <span class="stat-value" id="stat-nps">–</span>
+                        </span>
+                        <span class="stat">
+                            <span class="stat-label">Time</span>
+                            <span class="stat-value" id="stat-time">–</span>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="panel moves-panel">
+                    <h2>📜 Moves</h2>
+                    <div class="move-list" id="move-list"></div>
+                </div>
+
+                <div class="panel captured-panel">
+                    <h2>⚔ Captured</h2>
+                    <div class="captured-row" id="captured-white"></div>
+                    <div class="captured-row" id="captured-black"></div>
+                </div>
+
+                <div class="panel controls-panel">
+                    <h2>⌨ Controls</h2>
+                    <div class="controls-grid">
+                        <button id="btn-new" title="New Game">🔄 New</button>
+                        <button id="btn-undo" title="Undo Move">↩ Undo</button>
+                        <button id="btn-hint" title="Get Hint">💡 Hint</button>
+                        <button id="btn-flip" title="Flip Board">🔃 Flip</button>
+                    </div>
+                    <div class="difficulty-selector">
+                        <label for="difficulty">Difficulty</label>
+                        <select id="difficulty">
+                            <option value="0.5">Casual (~1000 Elo)</option>
+                            <option value="1.0" selected>Intermediate (~1400 Elo)</option>
+                            <option value="2.0">Advanced (~1600 Elo)</option>
+                            <option value="3.0">Master (~1800 Elo)</option>
+                        </select>
+                    </div>
+                    <div class="side-selector">
+                        <label>Play as</label>
+                        <div class="side-buttons">
+                            <button id="btn-white" class="side-btn active">♔ White</button>
+                            <button id="btn-black" class="side-btn">♚ Black</button>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </main>
+    </div>
+
+    <!-- Promotion Dialog -->
+    <div class="modal-overlay hidden" id="promo-modal">
+        <div class="modal promo-dialog">
+            <h3>Promote to</h3>
+            <div class="promo-options">
+                <button class="promo-btn" data-piece="q">♛</button>
+                <button class="promo-btn" data-piece="r">♜</button>
+                <button class="promo-btn" data-piece="b">♝</button>
+                <button class="promo-btn" data-piece="n">♞</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
